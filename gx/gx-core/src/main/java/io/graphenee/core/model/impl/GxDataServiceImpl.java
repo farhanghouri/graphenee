@@ -79,7 +79,6 @@ import io.graphenee.core.util.CryptoUtil;
 
 @Service
 @Transactional("gxtm")
-// @Transactional
 public class GxDataServiceImpl implements GxDataService {
 
 	@Autowired
@@ -388,6 +387,7 @@ public class GxDataServiceImpl implements GxDataService {
 		GxSecurityGroupBean bean = new GxSecurityGroupBean();
 		bean.setOid(entity.getOid());
 		bean.setSecurityGroupName(entity.getSecurityGroupName());
+		bean.setSecurityGroupDescription(entity.getSecurityGroupDescription());
 		bean.setPriority(entity.getPriority());
 		bean.setIsActive(entity.getIsActive());
 		bean.setIsProtected(entity.getIsProtected());
@@ -411,6 +411,7 @@ public class GxDataServiceImpl implements GxDataService {
 			entity = new GxSecurityGroup();
 		}
 		entity.setSecurityGroupName(bean.getSecurityGroupName());
+		entity.setSecurityGroupDescription(bean.getSecurityGroupDescription());
 		entity.setPriority(bean.getPriority());
 		entity.setGxNamespace(namespaceRepo.findOne(bean.getNamespaceFault().getOid()));
 		entity.setIsActive(bean.getIsActive());
@@ -610,6 +611,7 @@ public class GxDataServiceImpl implements GxDataService {
 		bean.setOid(entity.getOid());
 		bean.setPriority(entity.getPriority());
 		bean.setSecurityPolicyName(entity.getSecurityPolicyName());
+		bean.setSecurityPolicyDescription(entity.getSecurityPolicyDescription());
 		bean.setIsActive(entity.getIsActive());
 		bean.setIsProtected(entity.getIsProtected());
 		bean.setNamespaceFault(BeanFault.beanFault(entity.getGxNamespace().getOid(), (oid) -> {
@@ -635,6 +637,7 @@ public class GxDataServiceImpl implements GxDataService {
 			entity = new GxSecurityPolicy();
 		}
 		entity.setSecurityPolicyName(bean.getSecurityPolicyName());
+		entity.setSecurityPolicyDescription(bean.getSecurityPolicyDescription());
 		entity.setPriority(bean.getPriority());
 		entity.setIsActive(bean.getIsActive());
 		entity.setIsProtected(false);
@@ -1135,9 +1138,9 @@ public class GxDataServiceImpl implements GxDataService {
 		GxNamespaceBean namespace = findNamespace(GxNamespaceBean.SYSTEM);
 		GxEmailTemplate emailTemplate = null;
 		if (namespace != null) {
-			emailTemplate = emailTemplateRepository.findTop1ByTemplateNameAndGxNamespaceOidAndIsActive(templateName, namespace.getOid(), true);
+			emailTemplate = emailTemplateRepository.findOneByTemplateNameAndGxNamespaceOidAndIsActive(templateName, namespace.getOid(), true);
 		} else {
-			emailTemplate = emailTemplateRepository.findTop1ByTemplateNameAndIsActive(templateName, true);
+			emailTemplate = emailTemplateRepository.findOneByTemplateNameAndIsActive(templateName, true);
 		}
 		if (emailTemplate != null) {
 			return makeEmailTemplateBean(emailTemplate, namespace);
@@ -1147,7 +1150,7 @@ public class GxDataServiceImpl implements GxDataService {
 
 	@Override
 	public GxEmailTemplateBean findEmailTemplateByTemplateNameAndNamespaceActive(String templateName, GxNamespaceBean namespace) {
-		GxEmailTemplate emailTemplate = emailTemplateRepository.findTop1ByTemplateNameAndGxNamespaceOidAndIsActive(templateName, namespace.getOid(), true);
+		GxEmailTemplate emailTemplate = emailTemplateRepository.findOneByTemplateNameAndGxNamespaceOidAndIsActive(templateName, namespace.getOid(), true);
 		if (emailTemplate != null) {
 			return makeEmailTemplateBean(emailTemplate, namespace);
 		}
