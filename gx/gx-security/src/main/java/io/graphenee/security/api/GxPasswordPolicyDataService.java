@@ -28,4 +28,7 @@ public interface GxPasswordPolicyDataService {
 	void changePassword(String namespace, String username, String oldPassword, String newPassword) throws ChangePasswordFailedException;
 
 	Boolean isPasswordExpired(String namespace, GxUserAccountBean usAccountBean);
+
+	String sendPasswordToken(String userName, String senderEmail);
+
 }

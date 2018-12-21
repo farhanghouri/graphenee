@@ -64,7 +64,6 @@ public abstract class VaadinAbstractLoginComponent extends LoginForm {
 			addLoginListener(listener -> {
 				UserLoginRequestedEvent userLoginRequestedEvent = new UserLoginRequestedEvent(listener.getLoginParameter("username"), listener.getLoginParameter("password"));
 				DashboardEventBus.sessionInstance().post(userLoginRequestedEvent);
-
 			});
 			setSizeFull();
 			Component loginForm = buildLoginForm(userNameField, passwordField, loginButton);
@@ -81,12 +80,21 @@ public abstract class VaadinAbstractLoginComponent extends LoginForm {
 	private Component buildLoginForm(TextField userNameField, PasswordField passwordField, Button loginButton) {
 		final VerticalLayout loginPanel = new VerticalLayout();
 		loginPanel.setSizeUndefined();
-		loginPanel.setSpacing(true);
+		loginPanel.setSpacing(false);
 		loginPanel.setMargin(false);
 		Responsive.makeResponsive(loginPanel);
 		loginPanel.addStyleName("login-panel");
 		loginPanel.addComponent(buildLabels());
 		loginPanel.addComponent(buildFields(userNameField, passwordField, loginButton));
+
+		Button forgotPasswordButton = new Button("Forgot Password");
+		forgotPasswordButton.setStyleName(ValoTheme.BUTTON_LINK);
+		forgotPasswordButton.setStyleName(ValoTheme.BUTTON_BORDERLESS, true);
+		forgotPasswordButton.addClickListener(event -> {
+			DashboardEventBus.sessionInstance().post("");
+		});
+
+		loginPanel.addComponent(forgotPasswordButton);
 		if (isRememberMeEnabled()) {
 			loginPanel.addComponent(new CheckBox("Remember me", true));
 		}

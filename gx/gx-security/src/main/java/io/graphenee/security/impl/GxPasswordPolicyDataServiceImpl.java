@@ -2,15 +2,18 @@ package io.graphenee.security.impl;
 
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import io.graphenee.core.api.GxMailService;
 import io.graphenee.core.exception.ChangePasswordFailedException;
 import io.graphenee.core.model.BeanFault;
 import io.graphenee.core.model.api.GxDataService;
@@ -44,6 +47,8 @@ public class GxPasswordPolicyDataServiceImpl implements GxPasswordPolicyDataServ
 	GxPasswordHistoryRepository passwordHistoryRepo;
 	@Autowired
 	GxDataService gxDataService;
+	@Autowired(required = false)
+	GxMailService gxMailService;
 	Pattern pattern;
 	Matcher matcher;
 
@@ -232,9 +237,13 @@ public class GxPasswordPolicyDataServiceImpl implements GxPasswordPolicyDataServ
 	@Override
 	public void changePassword(String namespace, String username, String oldPassword, String newPassword) throws ChangePasswordFailedException {
 		// fields validation apply
-		GxUserAccountBean userAccountBean = gxDataService.findUserAccountByUsernameAndPassword(username, oldPassword);
-		if (userAccountBean == null)
-			throw new ChangePasswordFailedException("Current password did not match.");
+		GxUserAccountBean userAccountBean;
+		userAccountBean = gxDataService.findUserAccountByUsernameAndPassword(username, oldPassword);
+		if (userAccountBean == null) {
+			userAccountBean = gxDataService.findUserAccountByEmailAndPassword(username, oldPassword);
+			if (userAccountBean == null)
+				throw new ChangePasswordFailedException("Current password did not match.");
+		}
 
 		// use system policy if no application level policy defined.
 		GxPasswordPolicyBean passwordPolicyBean = findPasswordPolicyByNamespace(namespace);
@@ -251,6 +260,8 @@ public class GxPasswordPolicyDataServiceImpl implements GxPasswordPolicyDataServ
 			Integer maxHistory = passwordPolicyBean.getMaxHistory();
 			String encryptedPassword = CryptoUtil.createPasswordHash(newPassword);
 			GxUserAccount userAccount = userAccountRepo.findByUsername(username);
+			if (userAccount == null)
+				userAccount = userAccountRepo.findByEmail(username);
 			if (maxHistory > 0) {
 				// is password match with current password
 				if (userAccount.getPassword().equals(encryptedPassword)) {
@@ -307,6 +318,27 @@ public class GxPasswordPolicyDataServiceImpl implements GxPasswordPolicyDataServ
 		}
 		return diff != 0 && diff > passwordPolicyBean.getMaxAge();
 
+	}
+
+	@Override
+	public String sendPasswordToken(String userName, String senderEmail) {
+		if (gxMailService != null) {
+			GxUserAccount gxUserAccount = null;
+			if (userName.contains("@"))
+				gxUserAccount = userAccountRepo.findByEmail(userName);
+			else
+				gxUserAccount = userAccountRepo.findByUsername(userName);
+			if (gxUserAccount != null) {
+				String subject, body, token = RandomStringUtils.randomNumeric(6), recipientEmail = gxUserAccount.getEmail();
+				subject = "Password Reset Token";
+				body = token;
+				Executors.newSingleThreadExecutor().execute(() -> {
+					gxMailService.sendEmail(subject, body, senderEmail, recipientEmail);
+				});
+				return token;
+			}
+		}
+		return null;
 	}
 
 }

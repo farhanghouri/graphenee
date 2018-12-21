@@ -251,6 +251,8 @@ public interface GxDataService {
 
 	GxUserAccountBean findUserAccountByUsernameAndPassword(String username, String password);
 
+	GxUserAccountBean findUserAccountByEmailAndPassword(String email, String password);
+
 	GxSecurityGroupBean findOrCreateSecurityGroup(String groupName, GxNamespaceBean namespaceBean);
 
 	GxSecurityGroupBean createOrUpdate(GxSecurityGroupBean bean);

@@ -36,4 +36,6 @@ public interface GxUserAccountRepository extends JpaRepository<GxUserAccount, In
 
 	GxUserAccount findByUsernameAndPassword(String username, String password);
 
+	GxUserAccount findByEmail(String email);
+
 }

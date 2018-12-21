@@ -96,6 +96,10 @@ public abstract class AbstractDashboardSetup implements Serializable {
 	protected void changePassword(UserChangePasswordRequestedEvent event) throws ChangePasswordFailedException {
 	}
 
+	protected String sendPasswordToken(String userName) {
+		return null;
+	}
+
 	public List<GxSupportedLocaleBean> supportedLocales() {
 		return null;
 	}

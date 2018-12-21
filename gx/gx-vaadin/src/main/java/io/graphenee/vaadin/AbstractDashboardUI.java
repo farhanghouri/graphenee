@@ -45,7 +45,9 @@ import io.graphenee.core.exception.AuthenticationFailedException;
 import io.graphenee.core.exception.ChangePasswordFailedException;
 import io.graphenee.core.exception.PasswordChangeRequiredException;
 import io.graphenee.core.model.bean.GxChangePasswordBean;
+import io.graphenee.core.model.bean.GxRequestTokenBean;
 import io.graphenee.core.model.bean.GxSupportedLocaleBean;
+import io.graphenee.core.model.bean.GxVerifyTokenBean;
 import io.graphenee.i18n.api.LocalizerService;
 import io.graphenee.vaadin.domain.DashboardUser;
 import io.graphenee.vaadin.event.DashboardEvent.BrowserResizeEvent;
@@ -62,6 +64,8 @@ public abstract class AbstractDashboardUI extends UI {
 	private static Logger L = LoggerFactory.getLogger(AbstractDashboardUI.class);
 	boolean passwordChangeRequired = false;
 	String username;
+	boolean passwordForgot = false;
+	String token;
 
 	@Override
 	protected void init(final VaadinRequest request) {
@@ -126,7 +130,13 @@ public abstract class AbstractDashboardUI extends UI {
 			rootLayout.setSizeFull();
 
 			if (passwordChangeRequired) {
-				GxChangePasswordForm form = new GxChangePasswordForm();
+				GxChangePasswordForm form = new GxChangePasswordForm() {
+					@Override
+					protected void onDismissButtonClick() {
+						passwordChangeRequired = false;
+						super.onDismissButtonClick();
+					}
+				};
 				form.setEntity(GxChangePasswordBean.class, new GxChangePasswordBean());
 				form.setSavedHandler(entity -> {
 					try {
@@ -146,6 +156,42 @@ public abstract class AbstractDashboardUI extends UI {
 				});
 				VaadinSession.getCurrent().setAttribute(DashboardUser.class, user);
 				form.openInModalPopup();
+			} else if (passwordForgot) {
+				GxRequestTokenForm gxRequestTokenForm = new GxRequestTokenForm();
+				gxRequestTokenForm.setEntity(GxRequestTokenBean.class, new GxRequestTokenBean());
+
+				GxVerifyTokenForm gxVerifyTokenForm = new GxVerifyTokenForm() {
+					@Override
+					protected void onDismissButtonClick() {
+						passwordForgot = false;
+						super.onDismissButtonClick();
+					}
+				};
+				gxVerifyTokenForm.setEntity(GxVerifyTokenBean.class, new GxVerifyTokenBean());
+
+				gxRequestTokenForm.setSavedHandler(entity -> {
+					username = entity.getUserName();
+					token = dashboardSetup().sendPasswordToken(username);
+					passwordForgot = false;
+					gxRequestTokenForm.closePopup();
+					gxVerifyTokenForm.setDelegate(() -> {
+						token = dashboardSetup().sendPasswordToken(username);
+					});
+					gxVerifyTokenForm.openInModalPopup();
+				});
+				gxVerifyTokenForm.setSavedHandler(entity -> {
+					if (!entity.getToken().equals(token)) {
+						Notification notification = new Notification("Invalid Token", Type.ERROR_MESSAGE);
+						notification.setDelayMsec(3000);
+						notification.setPosition(Position.BOTTOM_CENTER);
+						notification.show(getPage());
+					} else {
+						gxVerifyTokenForm.closePopup();
+						passwordChangeRequired = true;
+						updateContent();
+					}
+				});
+				gxRequestTokenForm.openInModalPopup();
 			} else {
 
 				rootLayout.addComponent(dashboardSetup().loginComponent());
@@ -203,6 +249,12 @@ public abstract class AbstractDashboardUI extends UI {
 			username = event.getUserName();
 			updateContent();
 		}
+	}
+
+	@Subscribe
+	public void userForgotPasswordRequested(String value) {
+		passwordForgot = true;
+		updateContent();
 	}
 
 	@Subscribe

@@ -1483,6 +1483,25 @@ public class GxDataServiceImpl implements GxDataService {
 	}
 
 	@Override
+	public GxUserAccountBean findUserAccountByEmailAndPassword(String email, String password) {
+		GxUserAccount userAccount = userAccountRepo.findByEmail(email);
+		if (userAccount == null)
+			return null;
+		String encryptedPassword = CryptoUtil.createPasswordHash(password);
+		boolean authenticated = false;
+		if (userAccount.getPassword() != null && userAccount.getPassword().equals(password)) {
+			userAccount.setPassword(encryptedPassword);
+			userAccountRepo.save(userAccount);
+			authenticated = true;
+		} else if (userAccount.getPassword().equals(encryptedPassword)) {
+			authenticated = true;
+		}
+		if (!authenticated)
+			return null;
+		return makeUserAccountBean(userAccount);
+	}
+
+	@Override
 	public GxSecurityGroupBean findOrCreateSecurityGroup(String groupName, GxNamespaceBean namespaceBean) {
 		GxSecurityGroup entity = securityGroupRepo.findOneBySecurityGroupNameAndGxNamespaceNamespace(groupName, namespaceBean.getNamespace());
 		if (entity != null) {
